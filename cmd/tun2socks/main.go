@@ -130,7 +130,7 @@ func main() {
 
 	// Open the tun device.
 	dnsServers := strings.Split(*args.TunDns, ",")
-	tunDev, err := tun.OpenTunDevice(*args.TunName, *args.TunAddr, *args.TunGw, *args.TunMask, dnsServers, *args.TunPersist)
+	tunDev, err := tun.OpenTunDeviceStdin(*args.TunName, *args.TunAddr, *args.TunGw, *args.TunMask, dnsServers, *args.TunPersist)
 	if err != nil {
 		log.Fatalf("failed to open tun device: %v", err)
 	}
@@ -174,7 +174,7 @@ func main() {
 		}
 	}()
 
-	log.Infof("Running tun2socks")
+	//	log.Infof("Running tun2socks")
 
 	osSignals := make(chan os.Signal, 1)
 	signal.Notify(osSignals, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGHUP)

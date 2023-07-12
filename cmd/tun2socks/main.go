@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"flag"
 	"fmt"
 	"io"
@@ -163,14 +164,46 @@ func main() {
 	// Register an output callback to write packets output from lwip stack to tun
 	// device, output function should be set before input any packets.
 	core.RegisterOutputFn(func(data []byte) (int, error) {
+		length := len(data)
+		bs := make([]byte, 4)
+		binary.BigEndian.PutUint32(bs, uint32(length))
+
+		os.Stdout.Write(bs)
+		os.Stdout.Write(data)
+
 		return tunDev.Write(data)
 	})
 
 	// Copy packets from tun device to lwip stack, it's the main loop.
 	go func() {
-		_, err := io.CopyBuffer(lwipWriter, tunDev, make([]byte, MTU))
-		if err != nil {
-			log.Fatalf("copying data failed: %v", err)
+		lengthBuffer := make([]byte, 4)
+		for {
+			nr, readError := os.Stdin.Read(lengthBuffer)
+			if readError != nil {
+				break
+			}
+			if nr != 4 {
+				break
+			}
+
+			length := int(binary.BigEndian.Uint32(lengthBuffer))
+
+			buffer := make([]byte, length)
+			nr2, readError2 := os.Stdin.Read(buffer)
+			if readError2 != nil {
+				break
+			}
+			if nr2 != length {
+				break
+			}
+
+			nw, writeError := lwipWriter.Write(buffer)
+			if writeError != nil {
+				break
+			}
+			if nw != len(buffer) {
+				break
+			}
 		}
 	}()
 
